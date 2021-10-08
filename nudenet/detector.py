@@ -1,4 +1,13 @@
+"""
+Modified NudeNet Detector.py
+
+can mosaic and blur
+
+modified by Teddy Morduhovich, 2021.
+"""
 import os
+import random
+
 import cv2
 import pydload
 import logging
@@ -162,7 +171,7 @@ class Detector:
 
         return processed_boxes
 
-    def censor(self, img_path, out_path=None, visualize=False, parts_to_blur=[]):
+    def censor(self, img_path, out_path=None, visualize=False, parts_to_blur=[], mosaic=None, mosaic_granuality=16):
         if not out_path and not visualize:
             print(
                 "No out_path passed and visualize is set to false. There is no point in running this function then."
@@ -179,9 +188,20 @@ class Detector:
 
         for box in boxes:
             part = image[box[1] : box[3], box[0] : box[2]]
-            image = cv2.rectangle(
-                image, (box[0], box[1]), (box[2], box[3]), (0, 0, 0), cv2.FILLED
-            )
+            # image = cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 0, 0), cv2.FILLED)
+            # modifying censoring for my use case, still wip
+            if mosaic is not None:
+                ROI = image[box[1]: box[3], box[0]: box[2]]
+                height, width, _ = image.shape
+                roi_height, roi_width, roi_ = ROI.shape
+                h, w = (mosaic_granuality, mosaic_granuality)
+                temp_img = cv2.resize(ROI, (w, h), interpolation=cv2.INTER_LINEAR)
+                temp_resized_img = cv2.resize(temp_img, (roi_width, roi_height), interpolation=cv2.INTER_NEAREST)
+                image[box[1] : box[3], box[0] : box[2]] = temp_resized_img
+            else:
+                ROI = image[box[1] : box[3], box[0] : box[2]]
+                blur = cv2.GaussianBlur(ROI, (75,75), 100)
+                image[box[1] : box[3], box[0] : box[2]] = blur
 
         if visualize:
             cv2.imshow("Blurred image", image)
